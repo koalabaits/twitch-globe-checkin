@@ -101,10 +101,10 @@ app.get("/checkin", async (req, res) => {
     const u = safeUser(req.query.u);
     const loc = cleanText(req.query.loc);
 
-    if (!loc) return res.send("no location");
+    if (!loc) return res.status(204).end();;
 
 const geo = await geocode(loc);
-if (!geo) return res.send("not found");
+if (!geo) return res.status(204).end();
 
 // one pin per user: remove old pin if it exists
 const existingIndex = pins.findIndex(p => p.user === u);
