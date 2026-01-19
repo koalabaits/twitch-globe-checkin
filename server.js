@@ -90,9 +90,11 @@ app.get("/checkin", async (req, res) => {
     if (pins.length > MAX_PINS) pins.length = MAX_PINS;
 
     res.send("ok");
-  } catch {
-    res.status(500).send("error");
-  }
+ } catch (e) {
+  console.error("CHECKIN_ERROR", e);
+  res.status(500).send(e?.message || String(e));
+}
+
 });
 
 app.get("/pins", (req, res) => {
