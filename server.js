@@ -15,6 +15,8 @@ app.use(express.static(path.join(__dirname, "public")));
 const pins = [];
 const MAX_PINS = 300;
 
+app.get("/ping", (req, res) => res.send("pong"));
+
 const geoCache = new LRUCache({ max: 1000, ttl: 1000 * 60 * 60 * 24 * 7 });
 const userCooldown = new LRUCache({ max: 5000, ttl: 1000 * 30 });
 const ipCooldown = new LRUCache({ max: 10000, ttl: 1000 * 5 });
