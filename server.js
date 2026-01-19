@@ -101,7 +101,7 @@ app.get("/checkin", async (req, res) => {
     const u = safeUser(req.query.u);
     const loc = cleanText(req.query.loc);
 
-    if (!loc) return res.status(204).end();;
+    if (!loc) return res.status(204).end();
 
 const geo = await geocode(loc);
 if (!geo) return res.status(204).end();
@@ -122,7 +122,7 @@ pins.unshift({
 });
 
 
-res.send("ok");
+return res.status(204).end();
 
   } catch (e) {
     console.error("CHECKIN_ERROR", e);
