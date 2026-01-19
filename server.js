@@ -106,6 +106,12 @@ app.get("/checkin", async (req, res) => {
 const geo = await geocode(loc);
 if (!geo) return res.send("not found");
 
+// one pin per user: remove old pin if it exists
+const existingIndex = pins.findIndex(p => p.user === u);
+if (existingIndex !== -1) {
+  pins.splice(existingIndex, 1);
+}
+
 pins.unshift({
   id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
   user: u,
@@ -114,6 +120,7 @@ pins.unshift({
   lon: geo.lon,
   ts: Date.now()
 });
+
 
 res.send("ok");
 
