@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Check-in Globe</title>
+<style>
+html,body{margin:0;background:transparent;overflow:hidden}
+#globe{width:100vw;height:100vh}
+.label{font:16px Arial;color:#fff;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:10px}
+</style>
+</head>
+<body>
+<div id="globe"></div>
+
+<script type="module">
+import Globe from "https://cdn.skypack.dev/globe.gl";
+
+const globe = Globe()(document.getElementById("globe"))
+  .backgroundColor("rgba(0,0,0,0)")
+  .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
+  .pointAltitude(0.02)
+  .pointRadius(0.3)
+  .pointLabel(d => {
+    const el = document.createElement("div");
+    el.className = "label";
+    el.textContent = `${d.user} arrived: ${d.display.split(',').slice(0,3).join(', ')}`;
+    return el;
+  })
+  .pointsData([]);
+
+globe.controls().autoRotate = true;
+globe.controls().autoRotateSpeed = 0.35;
+globe.controls().enableZoom = false;
+
+const seen = new Set();
+
+async function poll(){
+  const r = await fetch("/pins?ts="+Date.now());
+  const data = await r.json();
+  const current = globe.pointsData();
+  const next = [...current];
+  for(const p of data){
+    if(seen.has(p.id)) continue;
+    seen.add(p.id);
+    next.unshift({id:p.id,user:p.user,display:p.display,lat:p.lat,lng:p.lon});
+  }
+  globe.pointsData(next.slice(0,120));
+}
+setInterval(poll,2000);
+poll();
+</script>
+</body>
+</html>
