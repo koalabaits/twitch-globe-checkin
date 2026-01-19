@@ -6,7 +6,14 @@
 <style>
 html,body{margin:0;background:transparent;overflow:hidden}
 #globe{width:100vw;height:100vh}
-.label{font:16px Arial;color:#fff;background:rgba(0,0,0,.6);padding:6px 10px;border-radius:10px}
+.label{
+  font: bold 18px Arial;
+  color:#fff;
+  background:rgba(0,0,0,.65);
+  padding:8px 12px;
+  border-radius:12px;
+  box-shadow:0 0 12px rgba(255,204,0,.6);
+}
 </style>
 </head>
 <body>
@@ -15,11 +22,17 @@ html,body{margin:0;background:transparent;overflow:hidden}
 <script type="module">
 import Globe from "https://esm.sh/globe.gl?bundle";
 
+let highlightedPin = null;
+let lastFlyTs = 0;
+const seen = new Set();
+  
 const globe = Globe()(document.getElementById("globe"))
   .backgroundColor("rgba(0,0,0,0)")
   .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
-  .pointAltitude(0.02)
-  .pointRadius(0.3)
+  .pointAltitude(0.05)
+  .pointRadius(d => d === highlightedPin ? 0.9 : 0.55)
+  .pointColor(d => d === highlightedPin ? "#ffffff" : "#ffcc00")
+
   .pointLabel(d => {
     const el = document.createElement("div");
     el.className = "label";
@@ -29,23 +42,65 @@ const globe = Globe()(document.getElementById("globe"))
   .pointsData([]);
 
 globe.controls().autoRotate = true;
-globe.controls().autoRotateSpeed = 0.35;
+globe.controls().autoRotateSpeed = 0.6;
 globe.controls().enableZoom = false;
 
 const seen = new Set();
+let lastFlyTs = 0;
+
 
 async function poll(){
-  const r = await fetch("/pins?ts="+Date.now());
+  const r = await fetch("/pins?ts="+Date.now(), { cache: "no-store" });
   const data = await r.json();
+
   const current = globe.pointsData();
   const next = [...current];
+
+  let newestPin = null;
+
   for(const p of data){
     if(seen.has(p.id)) continue;
     seen.add(p.id);
-    next.unshift({id:p.id,user:p.user,display:p.display,lat:p.lat,lng:p.lon});
+
+    const pin = {
+      id: p.id,
+      user: p.user,
+      display: p.display,
+      lat: p.lat,
+      lng: p.lon,
+      ts: p.ts
+    };
+
+    next.unshift(pin);
+    newestPin = pin;
+    highlightedPin = pin;
+    setTimeout(() => {
+     if (highlightedPin === pin) highlightedPin = null;
+  }, 3000);
+
   }
+
   globe.pointsData(next.slice(0,120));
+
+  // Fly camera to newest pin (rate-limited)
+  if (newestPin && Date.now() - lastFlyTs > 3000) {
+    lastFlyTs = Date.now();
+    globe.pointOfView(
+      {
+        lat: newestPin.lat,
+        lng: newestPin.lng,
+        altitude: 1.4
+      },
+      1500
+    );
+
+    // Ease back out after a moment
+    setTimeout(() => {
+      globe.pointOfView({ altitude: 2.2 }, 1500);
+    }, 2200);
+  }
 }
+
 setInterval(poll,2000);
 poll();
 </script>
