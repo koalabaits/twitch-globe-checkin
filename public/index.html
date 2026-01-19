@@ -45,9 +45,6 @@ globe.controls().autoRotate = true;
 globe.controls().autoRotateSpeed = 0.6;
 globe.controls().enableZoom = false;
 
-const seen = new Set();
-let lastFlyTs = 0;
-
 
 async function poll(){
   const r = await fetch("/pins?ts="+Date.now(), { cache: "no-store" });
