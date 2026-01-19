@@ -68,34 +68,26 @@ app.get("/checkin", async (req, res) => {
     const u = safeUser(req.query.u);
     const loc = cleanText(req.query.loc);
 
-    const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.ip;
-    if (ipCooldown.has(ip)) return res.status(429).send("slow");
-    ipCooldown.set(ip, true);
+    if (!loc) return res.send("no location");
 
-    if (!loc) return res.status(200).send("no location");
-    if (userCooldown.has(u)) return res.status(200).send("cooldown");
-    userCooldown.set(u, true);
-
-    const geo = await geocodeNominatim(loc);
-    if (!geo) return res.status(200).send("not found");
-
-    pins.unshift({
+    // TEMP: hard-coded Adelaide to prove pipeline works
+    const pin = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
       user: u,
-      display: geo.displayName,
-      lat: geo.lat,
-      lon: geo.lon,
+      display: "Adelaide, South Australia, Australia",
+      lat: -34.9285,
+      lon: 138.6007,
       ts: Date.now()
-    });
-    if (pins.length > MAX_PINS) pins.length = MAX_PINS;
+    };
 
+    pins.unshift(pin);
     res.send("ok");
- } catch (e) {
-  console.error("CHECKIN_ERROR", e);
-  res.status(500).send(e?.message || String(e));
-}
-
+  } catch (e) {
+    console.error("CHECKIN_ERROR", e);
+    res.status(500).send(e?.message || String(e));
+  }
 });
+
 
 app.get("/pins", (req, res) => {
   const n = Math.min(Number(req.query.n || 80), 200);
