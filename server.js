@@ -63,6 +63,39 @@ async function geocodeNominatim(query) {
   return result;
 }
 
+async function geocode(query) {
+  const q = cleanText(query);
+  if (!q) return null;
+
+  const cached = geoCache.get(q.toLowerCase());
+  if (cached) return cached;
+
+  const url = new URL("https://photon.komoot.io/api/");
+  url.searchParams.set("q", q);
+  url.searchParams.set("limit", "1");
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`Photon ${res.status}`);
+
+  const data = await res.json();
+  if (!data.features || !data.features.length) return null;
+
+  const f = data.features[0];
+  const result = {
+    lat: f.geometry.coordinates[1],
+    lon: f.geometry.coordinates[0],
+    displayName: [
+      f.properties.name,
+      f.properties.state,
+      f.properties.country
+    ].filter(Boolean).join(", ")
+  };
+
+  geoCache.set(q.toLowerCase(), result);
+  return result;
+}
+
+
 app.get("/checkin", async (req, res) => {
   try {
     const u = safeUser(req.query.u);
@@ -70,18 +103,20 @@ app.get("/checkin", async (req, res) => {
 
     if (!loc) return res.send("no location");
 
-    // TEMP: hard-coded Adelaide to prove pipeline works
-    const pin = {
-      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      user: u,
-      display: "Adelaide, South Australia, Australia",
-      lat: -34.9285,
-      lon: 138.6007,
-      ts: Date.now()
-    };
+const geo = await geocode(loc);
+if (!geo) return res.send("not found");
 
-    pins.unshift(pin);
-    res.send("ok");
+pins.unshift({
+  id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+  user: u,
+  display: geo.displayName,
+  lat: geo.lat,
+  lon: geo.lon,
+  ts: Date.now()
+});
+
+res.send("ok");
+
   } catch (e) {
     console.error("CHECKIN_ERROR", e);
     res.status(500).send(e?.message || String(e));
